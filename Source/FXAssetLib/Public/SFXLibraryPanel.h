@@ -44,6 +44,7 @@ private:
 	void SpawnNiagaraActor(TSharedPtr<FSoftObjectPath> AssetPath);
 	FReply OnRefreshClicked();
 	FReply OnResetNiagaraClicked();
+	FReply OnCleanupClicked();
 	void BrowseToAsset(TSharedPtr<FSoftObjectPath> AssetPath);
 	void RemoveAssetFromLibrary(TSharedPtr<FSoftObjectPath> AssetPath);
 

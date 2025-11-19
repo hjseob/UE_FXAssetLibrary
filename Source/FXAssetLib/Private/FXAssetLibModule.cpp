@@ -6,15 +6,20 @@
 #include "FXLibrarySettings.h"
 #include "ToolMenus.h"
 #include "ContentBrowserMenuContexts.h"
+#include "ContentBrowserModule.h"
+#include "IContentBrowserSingleton.h"
 #include "AssetRegistry/AssetData.h"
 
 
 // FX Library Panel
 #include "SFXLibraryPanel.h"
+#include "SFXAssetRegistPanel.h"
 
 // Tab Manager
 #include "Framework/Docking/TabManager.h"
 #include "Widgets/Docking/SDockTab.h"
+
+#include "Framework/Application/SlateApplication.h"
 #include "WorkspaceMenuStructure.h"
 #include "WorkspaceMenuStructureModule.h"
 
@@ -69,58 +74,41 @@ void FFXAssetLibModule::RegisterMenus()
     UToolMenu* Menu = TM->ExtendMenu("ContentBrowser.AssetContextMenu");
     FToolMenuSection& Sec = Menu->AddSection("FXLibrary", FText::FromString("FX Library"));
 
-    Sec.AddSubMenu(
-        "FXLibraryAdd",
-        FText::FromString("Add to FX Library"),
-        FText::FromString("Register selected Niagara assets to a category"),
-        FNewToolMenuDelegate::CreateLambda([](UToolMenu* InMenu)
+    // Register FX Asset 메뉴 항목
+    Sec.AddMenuEntry(
+        "RegisterFXAsset",
+        FText::FromString("Register"),
+        FText::FromString("Register selected Niagara assets with custom settings"),
+        FSlateIcon(FAppStyle::GetAppStyleSetName(), "Icons.Plus"),
+        FUIAction(FExecuteAction::CreateLambda([]()
         {
-            const auto* Ctx = InMenu->FindContext<UContentBrowserAssetContextMenuContext>();
-            if (!Ctx) return;
+            // Content Browser 컨텍스트에서 선택된 에셋 가져오기
+            FContentBrowserModule& ContentBrowserModule = FModuleManager::LoadModuleChecked<FContentBrowserModule>("ContentBrowser");
+            TArray<FAssetData> SelectedAssets;
+            ContentBrowserModule.Get().GetSelectedAssets(SelectedAssets);
 
-            const UFXLibrarySettings* Settings = GetMutableDefault<UFXLibrarySettings>();
-            if (!Settings) return;
-
-            // 각 카테고리별로 메뉴 항목 생성
-            for (const FFXCategoryData& CategoryData : Settings->Categories)
+            if (SelectedAssets.Num() == 0)
             {
-                FName CategoryName = CategoryData.CategoryName;
-
-                FToolMenuEntry Entry = FToolMenuEntry::InitMenuEntry(
-                    NAME_None,
-                    FText::FromName(CategoryName),
-                    FText::FromName(CategoryName),
-                    FSlateIcon(),
-                    FUIAction(FExecuteAction::CreateLambda([CategoryName, Selected = Ctx->SelectedAssets]()
-                        {
-                            UFXLibrarySettings* Mutable = GetMutableDefault<UFXLibrarySettings>();
-                            if (!Mutable) return;
-
-                            // 카테고리 찾기
-                            FFXCategoryData* Category = Mutable->FindCategory(CategoryName);
-                            if (!Category) return;
-
-                            // 선택된 에셋들 중 나이아가라 시스템만 추가
-                            for (const FAssetData& AD : Selected)
-                            {
-                                if (AD.AssetClassPath.GetAssetName() == "NiagaraSystem"
-                                    || AD.AssetClassPath.ToString().Contains("NiagaraSystem"))
-                                {
-                                    Category->Assets.AddUnique(AD.ToSoftObjectPath());
-                                }
-                            }
-
-                            // 설정 저장
-                            Mutable->SaveConfig();
-                            Mutable->TryUpdateDefaultConfigFile();
-
-                            UE_LOG(LogTemp, Log, TEXT("Added assets to category: %s"), *CategoryName.ToString());
-                        }))
-                );
-
-                InMenu->AddMenuEntry("FXLibrary", MoveTemp(Entry));
+                UE_LOG(LogTemp, Warning, TEXT("No assets selected"));
+                return;
             }
-        })
+
+            // 등록 창 생성
+            TSharedRef<SWindow> RegistrationWindow = SNew(SWindow)
+                .Title(FText::FromString(TEXT("Register FX Asset")))
+                .SizingRule(ESizingRule::UserSized)
+                .ClientSize(FVector2D(500, 400))
+                .SupportsMaximize(false)
+                .SupportsMinimize(false);
+
+            RegistrationWindow->SetContent(
+                SNew(SFXAssetRegistPanel)
+				.SelectedAssets(SelectedAssets)
+            );
+
+            // 창을 모달로 표시
+            FSlateApplication::Get().AddModalWindow(RegistrationWindow, nullptr);
+        }))
     );
 
 

@@ -8,6 +8,9 @@ public class FXAssetLib : ModuleRules
 	{
 		PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
 		
+		// UE 5.5 호환성 설정
+		IncludeOrderVersion = EngineIncludeOrderVersion.Unreal5_5;
+		
 		PublicIncludePaths.AddRange(
 			new string[] {
 				// ... add public include paths required here ...
@@ -32,7 +35,7 @@ public class FXAssetLib : ModuleRules
 			);
 			
 		
-		PrivateDependencyModuleNames.AddRange(
+			PrivateDependencyModuleNames.AddRange(
 			new string[]
 			{
 				"CoreUObject",
@@ -55,6 +58,7 @@ public class FXAssetLib : ModuleRules
 				"AssetTools",             // FAssetThumbnail, FAssetThumbnailPool
 				"WorkspaceMenuStructure", // <- 추가! WorkspaceMenu::GetMenuStructure()
 				"AssetRegistry",          // <- 추가! Asset Registry for dependency tracking
+				"EditorWidgets",          // <- 추가! Slate 위젯들 (SWindow 등)
 			}
 			);
 		

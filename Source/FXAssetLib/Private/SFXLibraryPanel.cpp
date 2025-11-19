@@ -16,6 +16,7 @@
 #include "NiagaraActor.h"
 #include "NiagaraComponent.h"
 
+
 // Slate Widgets
 #include "Widgets/Layout/SSplitter.h"
 #include "Widgets/Layout/SBorder.h"
@@ -98,6 +99,7 @@ void SFXLibraryPanel::Construct(const FArguments& InArgs)
 					// Reset Niagara 버튼
 					+ SHorizontalBox::Slot()
 						.AutoWidth()
+						.Padding(0, 0, 5, 0)
 						[
 							SNew(SButton)
 								.Text(FText::FromString(TEXT("Reset Selected")))
@@ -123,6 +125,38 @@ void SFXLibraryPanel::Construct(const FArguments& InArgs)
 										[
 											SNew(STextBlock)
 												.Text(FText::FromString(TEXT("Reset Selected")))
+										]
+								]
+						]
+
+					// Clean Up 버튼
+					+ SHorizontalBox::Slot()
+						.AutoWidth()
+						[
+							SNew(SButton)
+								.Text(FText::FromString(TEXT("Clean Up")))
+								.ToolTipText(FText::FromString(TEXT("Clean up and organize registered assets and categories")))
+								.OnClicked(this, &SFXLibraryPanel::OnCleanupClicked)
+								.HAlign(HAlign_Center)
+								.VAlign(VAlign_Center)
+								[
+									SNew(SHorizontalBox)
+
+										+ SHorizontalBox::Slot()
+										.AutoWidth()
+										.VAlign(VAlign_Center)
+										.Padding(0, 0, 5, 0)
+										[
+											SNew(SImage)
+												.Image(FAppStyle::GetBrush("Icons.Delete"))
+										]
+
+										+ SHorizontalBox::Slot()
+										.AutoWidth()
+										.VAlign(VAlign_Center)
+										[
+											SNew(STextBlock)
+												.Text(FText::FromString(TEXT("Clean Up")))
 										]
 								]
 						]
@@ -369,7 +403,77 @@ FReply SFXLibraryPanel::OnResetNiagaraClicked()
 	return FReply::Handled();
 }
 
+FReply SFXLibraryPanel::OnCleanupClicked()
+{
+	UFXLibrarySettings* Settings = GetMutableDefault<UFXLibrarySettings>();
+	if (!Settings)
+	{
+		UE_LOG(LogTemp, Error, TEXT("Failed to get FX Library Settings"));
+		return FReply::Handled();
+	}
 
+	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry");
+	IAssetRegistry& AssetRegistry = AssetRegistryModule.Get();
+
+	int32 RemovedInvalidAssets = 0;
+	int32 RemovedEmptyCategories = 0;
+
+	// 각 카테고리에서 유효하지 않은 에셋 제거
+	for (FFXCategoryData& Category : Settings->Categories)
+	{
+		TArray<FSoftObjectPath> ValidAssets;
+		
+		for (const FSoftObjectPath& AssetPath : Category.Assets)
+		{
+			// 에셋이 실제로 존재하는지 확인
+			FAssetData AssetData = AssetRegistry.GetAssetByObjectPath(*AssetPath.ToString());
+			if (AssetData.IsValid())
+			{
+				ValidAssets.Add(AssetPath);
+			}
+			else
+			{
+				RemovedInvalidAssets++;
+				UE_LOG(LogTemp, Log, TEXT("Removed invalid asset: %s"), *AssetPath.ToString());
+			}
+		}
+		
+		Category.Assets = ValidAssets;
+	}
+
+	// 빈 카테고리 제거
+	TArray<FFXCategoryData> ValidCategories;
+	for (FFXCategoryData& Category : Settings->Categories)
+	{
+		if (Category.Assets.Num() > 0)
+		{
+			ValidCategories.Add(Category);
+		}
+		else
+		{
+			RemovedEmptyCategories++;
+			UE_LOG(LogTemp, Log, TEXT("Removed empty category: %s"), *Category.CategoryName.ToString());
+		}
+	}
+	
+	Settings->Categories = ValidCategories;
+
+	// 설정 저장
+	Settings->SaveConfig();
+	Settings->TryUpdateDefaultConfigFile();
+
+	// UI 갱신
+	LoadFromSettings();
+	if (CategoryList.IsValid())
+	{
+		CategoryList->RequestListRefresh();
+	}
+
+	UE_LOG(LogTemp, Warning, TEXT("Clean Up completed: Removed %d invalid assets, %d empty categories"), 
+		RemovedInvalidAssets, RemovedEmptyCategories);
+
+	return FReply::Handled();
+}
 
 TSharedRef<ITableRow> SFXLibraryPanel::GenCatRow(TSharedPtr<FName> Item, const TSharedRef<STableViewBase>& Owner)
 {

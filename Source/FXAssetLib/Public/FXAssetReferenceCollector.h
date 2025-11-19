@@ -4,7 +4,9 @@
 
 #include "CoreMinimal.h"
 #include "UObject/SoftObjectPath.h"
-#include "AssetRegistry/AssetRegistryModule.h"
+
+// Forward declarations
+struct FAssetIdentifier;
 
 /**
  * 참조된 에셋 정보를 담는 구조체
