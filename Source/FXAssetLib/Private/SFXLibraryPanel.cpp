@@ -20,6 +20,7 @@
 // Slate Widgets
 #include "Widgets/Layout/SSplitter.h"
 #include "Widgets/Layout/SBorder.h"
+#include "Widgets/Layout/SBox.h"
 #include "Widgets/Text/STextBlock.h"
 #include "Widgets/Images/SImage.h"
 #include "Widgets/Input/SButton.h"
@@ -45,6 +46,11 @@
 
 // App Style for icons
 #include "Styling/AppStyle.h"
+
+// Framework
+#include "Framework/Application/SlateApplication.h"
+#include "Framework/MultiBox/MultiBoxBuilder.h"
+
 
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 void SFXLibraryPanel::Construct(const FArguments& InArgs)
@@ -82,8 +88,13 @@ void SFXLibraryPanel::Construct(const FArguments& InArgs)
 										.VAlign(VAlign_Center)
 										.Padding(0, 0, 5, 0)
 										[
-											SNew(SImage)
-												.Image(FAppStyle::GetBrush("Icons.Refresh"))
+											SNew(SBox)
+												.WidthOverride(16)
+												.HeightOverride(16)
+												[
+													SNew(SImage)
+														.Image(FAppStyle::GetBrush("Icons.Refresh"))
+												]
 										]
 
 										+ SHorizontalBox::Slot()
@@ -115,8 +126,13 @@ void SFXLibraryPanel::Construct(const FArguments& InArgs)
 										.VAlign(VAlign_Center)
 										.Padding(0, 0, 5, 0)
 										[
-											SNew(SImage)
-												.Image(FAppStyle::GetBrush("Icons.CircleArrowLeft"))
+											SNew(SBox)
+												.WidthOverride(16)
+												.HeightOverride(16)
+												[
+													SNew(SImage)
+														.Image(FAppStyle::GetBrush("Icons.CircleArrowLeft"))
+												]
 										]
 
 										+ SHorizontalBox::Slot()
@@ -147,8 +163,13 @@ void SFXLibraryPanel::Construct(const FArguments& InArgs)
 										.VAlign(VAlign_Center)
 										.Padding(0, 0, 5, 0)
 										[
-											SNew(SImage)
-												.Image(FAppStyle::GetBrush("Icons.Delete"))
+											SNew(SBox)
+												.WidthOverride(16)
+												.HeightOverride(16)
+												[
+													SNew(SImage)
+														.Image(FAppStyle::GetBrush("Icons.Delete"))
+												]
 										]
 
 										+ SHorizontalBox::Slot()
@@ -223,8 +244,8 @@ void SFXLibraryPanel::Construct(const FArguments& InArgs)
 											SAssignNew(AssetTileView, STileView<TSharedPtr<FSoftObjectPath>>)
 												.ListItemsSource(&Visible)
 												.OnGenerateTile(this, &SFXLibraryPanel::GenAssetTile)
-												.ItemWidth(100)
-												.ItemHeight(100)
+												.ItemWidth(120)
+												.ItemHeight(130)
 										]
 								]
 						]
@@ -644,106 +665,149 @@ TSharedRef<ITableRow> SFXLibraryPanel::GenAssetTile(TSharedPtr<FSoftObjectPath> 
 	FAssetData AssetData = AssetRegistryModule.Get().GetAssetByObjectPath(*Item);
 
 	// 썸네일 생성
-	TSharedPtr<FAssetThumbnail> Thumbnail = MakeShared<FAssetThumbnail>(AssetData, 100, 100, GetThumbnailPool());
+	TSharedPtr<FAssetThumbnail> Thumbnail = MakeShared<FAssetThumbnail>(AssetData, 120, 120, GetThumbnailPool());
 
+	// ⭐ 커스텀 위젯 클래스 정의 (우클릭 처리)
+	class SAssetTileWidget : public SCompoundWidget
+	{
+	public:
+		SLATE_BEGIN_ARGS(SAssetTileWidget) {}
+			SLATE_ARGUMENT(TSharedPtr<FSoftObjectPath>, AssetPath)
+			SLATE_ARGUMENT(SFXLibraryPanel*, ParentPanel)
+			SLATE_ARGUMENT(TSharedPtr<FAssetThumbnail>, Thumbnail)
+			SLATE_ARGUMENT(FString, AssetName)
+		SLATE_END_ARGS()
 
+		void Construct(const FArguments& InArgs)
+		{
+			AssetPath = InArgs._AssetPath;
+			ParentPanel = InArgs._ParentPanel;
+			Thumbnail = InArgs._Thumbnail;
+			AssetName = InArgs._AssetName;
 
-	// 타일 위젯 생성
-	TSharedRef<SWidget> TileWidget =
-		SNew(SBorder)
-		.BorderBackgroundColor(FLinearColor(0.2f, 0.2f, 0.2f, 1.0f))
-		.Padding(5)
-		[
-			SNew(SVerticalBox)
-				// 썸네일 이미지 (실제 에셋 미리보기)
-				+ SVerticalBox::Slot()
-				.AutoHeight()
-				.HAlign(HAlign_Center)
-				.Padding(5)
+			ChildSlot
 				[
-					SNew(SBox)
-						.WidthOverride(100)
-						.HeightOverride(100)
+					SNew(SBorder)
+						// ⭐ 호버 시 배경 색상 변경
+						.BorderBackgroundColor_Lambda([this]() -> FLinearColor
+							{
+								return IsHovered() ? FLinearColor(0.7f, 0.5f, 0.4f, 1.0f) : FLinearColor(0.2f, 0.2f, 0.3f, 1.0f);
+							})
+						//.BorderImage_Lambda([this]() -> const FSlateBrush*
+						//	{
+						//		return IsHovered()
+						//			? FAppStyle::GetBrush("ToolPanel.GroupBorder")  // 호버 시 테두리
+						//			: FAppStyle::GetBrush("NoBorder");              // 기본 테두리 없음
+						//	})
+						.Padding(5)
 						[
-							Thumbnail->MakeThumbnailWidget()
-						]
-				]
-				//// 아이콘
-				//+ SVerticalBox::Slot()
-				//.AutoHeight()
-				//.HAlign(HAlign_Center)
-				//.Padding(5)
-				//[
-				//	SNew(SImage)
-				//		.Image(FAppStyle::GetBrush("ClassIcon.ParticleSystem"))
-				//		.ColorAndOpacity(FLinearColor(0.2f, 0.8f, 1.0f))
-				//]
-
-				// 에셋 이름
-				+ SVerticalBox::Slot()
-				.AutoHeight()
-				.HAlign(HAlign_Center)
-				.Padding(2)
-				[
-					SNew(STextBlock)
-						.Text(FText::FromString(AssetName))
-						.Font(FCoreStyle::GetDefaultFontStyle("Regular", 8))
-						.Justification(ETextJustify::Center)
-						.AutoWrapText(true)
-				]
-
-			// 하단 버튼 (Browse + Remove)
-			+ SVerticalBox::Slot()
-				.AutoHeight()
-				.Padding(2, 5, 2, 0)
-				[
-					SNew(SHorizontalBox)
-
-						// Browse 버튼
-						+ SHorizontalBox::Slot()
-						.FillWidth(0.5f)
-						.Padding(2, 0)
-						[
-							SNew(SButton)
-								.ButtonStyle(FAppStyle::Get(), "SimpleButton")
-								.ToolTipText(FText::FromString(TEXT("Find in Content Browser")))
-								.OnClicked_Lambda([this, Item]()
-									{
-										BrowseToAsset(Item);
-										return FReply::Handled();
-									})
+							SNew(SVerticalBox)
+								// 썸네일 이미지
+								+ SVerticalBox::Slot()
+								.AutoHeight()
+								.HAlign(HAlign_Center)
+								.Padding(1)
 								[
-									SNew(SImage)
-										.Image(FAppStyle::GetBrush("SystemWideCommands.FindInContentBrowser"))
-										.ColorAndOpacity(FSlateColor::UseForeground())
+									SNew(SBox)
+										.WidthOverride(90)   // ⭐ 고정 너비
+										.HeightOverride(90)  // ⭐ 고정 높이
+										[
+											Thumbnail->MakeThumbnailWidget()
+										]
+								]
+
+
+							// 에셋 이름
+							+ SVerticalBox::Slot()
+								.AutoHeight()
+								.HAlign(HAlign_Center)
+								.MaxHeight(40)
+								.Padding(2, 4, 2, 2)
+								[
+									SNew(STextBlock)
+										.Text(FText::FromString(AssetName))
+										.Font(FCoreStyle::GetDefaultFontStyle("Regular", 9))
+										.Justification(ETextJustify::Left)
+										.AutoWrapText(true)
+										//.OverflowPolicy(ETextOverflowPolicy::Ellipsis)
+										.ToolTipText(FText::FromString(AssetName))
 								]
 						]
+				];
+		}
 
-					// Remove 버튼
-					+ SHorizontalBox::Slot()
-						.FillWidth(0.5f)
-						.Padding(2, 0)
-						[
-							SNew(SButton)
-								.ButtonStyle(FAppStyle::Get(), "SimpleButton")
-								.ToolTipText(FText::FromString(TEXT("Remove from Library")))
-								.OnClicked_Lambda([this, Item]()
-									{
-										RemoveAssetFromLibrary(Item);
-										return FReply::Handled();
-									})
-								[
-									SNew(SImage)
-										.Image(FAppStyle::GetBrush("Icons.Delete"))
-										.ColorAndOpacity(FLinearColor(1.0f, 0.3f, 0.3f))
-								]
-						]
-				]
-		];
+		// ⭐ 우클릭 이벤트 처리
+		virtual FReply OnMouseButtonUp(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override
+		{
+			if (MouseEvent.GetEffectingButton() == EKeys::RightMouseButton)
+			{
+				// 컨텍스트 메뉴 생성
+				FMenuBuilder MenuBuilder(true, nullptr);
+
+				// Browse 메뉴 항목
+				MenuBuilder.AddMenuEntry(
+					FText::FromString(TEXT("Find in Content Browser")),
+					FText::FromString(TEXT("Navigate to this asset in the Content Browser")),
+					FSlateIcon(FAppStyle::GetAppStyleSetName(), "SystemWideCommands.FindInContentBrowser"),
+					FUIAction(FExecuteAction::CreateLambda([this]()
+						{
+							if (ParentPanel)
+							{
+								ParentPanel->BrowseToAsset(AssetPath);
+							}
+						}))
+				);
+
+				// 구분선
+				MenuBuilder.AddMenuSeparator();
+
+				// Remove 메뉴 항목
+				MenuBuilder.AddMenuEntry(
+					FText::FromString(TEXT("Remove from Library")),
+					FText::FromString(TEXT("Remove this asset from the FX Library")),
+					FSlateIcon(FAppStyle::GetAppStyleSetName(), "Icons.Delete"),
+					FUIAction(FExecuteAction::CreateLambda([this]()
+						{
+							if (ParentPanel)
+							{
+								ParentPanel->RemoveAssetFromLibrary(AssetPath);
+							}
+						}))
+				);
+
+				// 메뉴 표시
+				FSlateApplication::Get().PushMenu(
+					AsShared(),
+					FWidgetPath(),
+					MenuBuilder.MakeWidget(),
+					MouseEvent.GetScreenSpacePosition(),
+					FPopupTransitionEffect(FPopupTransitionEffect::ContextMenu)
+				);
+
+				return FReply::Handled();
+			}
+
+			return FReply::Unhandled();
+		}
+
+	private:
+		TSharedPtr<FSoftObjectPath> AssetPath;
+		SFXLibraryPanel* ParentPanel;
+		TSharedPtr<FAssetThumbnail> Thumbnail;
+		FString AssetName;
+	};
+
+
+	// 타일 위젯 생성 (우클릭 처리 포함)
+	TSharedRef<SWidget> TileWidget = SNew(SAssetTileWidget)
+		.AssetPath(Item)
+		.ParentPanel(this)
+		.Thumbnail(Thumbnail)
+		.AssetName(AssetName);
 
 	// 좌클릭으로 스폰
 	return SNew(STableRow<TSharedPtr<FSoftObjectPath>>, Owner)
-		.Padding(5)
+		.Padding(2)
 		[
 			SNew(SButton)
 				.ButtonStyle(FAppStyle::Get(), "NoBorder")
@@ -756,6 +820,7 @@ TSharedRef<ITableRow> SFXLibraryPanel::GenAssetTile(TSharedPtr<FSoftObjectPath> 
 					TileWidget
 				]
 		];
+
 }
 
 
