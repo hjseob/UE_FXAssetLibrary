@@ -7,7 +7,10 @@
 #include "Widgets/Views/SListView.h"       
 #include "Widgets/Views/STileView.h"       
 #include "Widgets/Views/STableViewBase.h"  
-#include "Widgets/Views/STableRow.h"       
+#include "Widgets/Views/STableRow.h"
+#include "AssetRegistry/AssetRegistryModule.h"
+#include "AssetRegistry/IAssetRegistry.h"
+#include "Modules/ModuleManager.h"       
 
 
 
@@ -68,6 +71,10 @@ private:
 	mutable TSharedPtr<FName> HoveredCategory;
 
 };
+
+
+
+
 
 
 

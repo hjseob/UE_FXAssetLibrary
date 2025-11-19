@@ -6,6 +6,7 @@
 
 // FX Library Settings
 #include "FXLibrarySettings.h"
+#include "FXAssetReferenceCollector.h"
 
 // Thumbnail
 #include "AssetThumbnail.h"
@@ -673,6 +674,36 @@ void SFXLibraryPanel::SpawnNiagaraActor(TSharedPtr<FSoftObjectPath> AssetPath)
 	{
 		return;
 	}
+
+	// 참조된 에셋 목록 수집 (필터링된 /Game/ 하위 에셋만)
+	TArray<FReferencedAsset> ReferencedAssets = FFXAssetReferenceCollector::CollectAllReferences(*AssetPath);
+
+	// 필터링된 에셋 경로 목록 추출
+	TArray<FSoftObjectPath> FilteredAssetPaths;
+	TMap<FString, TArray<FSoftObjectPath>> AssetsByType;
+	int idx = 0;
+
+	for (const auto& RefAsset : ReferencedAssets)
+	{
+		// 필터링된 에셋 경로 저장
+		FilteredAssetPaths.Add(RefAsset.AssetPath);
+
+		// 타입별로 그룹화
+		AssetsByType.FindOrAdd(RefAsset.AssetType).Add(RefAsset.AssetPath);
+		UE_LOG(LogTemp, Warning, TEXT("[filtered] %d > %s ### %s"), idx, *RefAsset.AssetPath.ToString(), *RefAsset.AssetType);
+		idx++;
+	}
+
+	//*RefPath.ToString(), * AssetType
+	
+
+
+
+	// 여기서 FilteredAssetPaths를 사용할 수 있습니다
+	// 예: UI에 표시, 콘텐츠 브라우저에서 찾기, 등등
+	// FilteredAssetPaths.Num() - 필터링된 에셋 개수
+	// FilteredAssetPaths[0] - 첫 번째 필터링된 에셋 경로
+	// AssetsByType - 타입별로 그룹화된 에셋 경로들
 
 	// 1. FSoftObjectPath에서 실제 UNiagaraSystem 로드
 	UNiagaraSystem* NiagaraSystem = Cast<UNiagaraSystem>(AssetPath->TryLoad());

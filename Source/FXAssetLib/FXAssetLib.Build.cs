@@ -54,6 +54,7 @@ public class FXAssetLib : ModuleRules
 				"Niagara",                // UNiagaraSystem, ANiagaraActor 등
 				"AssetTools",             // FAssetThumbnail, FAssetThumbnailPool
 				"WorkspaceMenuStructure", // <- 추가! WorkspaceMenu::GetMenuStructure()
+				"AssetRegistry",          // <- 추가! Asset Registry for dependency tracking
 			}
 			);
 		
