@@ -4,7 +4,6 @@
 #include "View/SFXLibraryPanel.h"
 #include "Widgets/Layout/SBorder.h"
 #include "Widgets/Layout/SBox.h"
-//#include "Widgets/Layout/SOverlay.h"
 #include "Widgets/Text/STextBlock.h"
 #include "Widgets/Images/SImage.h"
 #include "Styling/CoreStyle.h"
@@ -88,5 +87,20 @@ void SFXCategoryRowWidget::OnMouseLeave(const FPointerEvent& MouseEvent)
 	{
 		ParentPanel->OnCategoryUnhovered();
 	}
+}
+
+FReply SFXCategoryRowWidget::OnMouseButtonUp(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
+{
+	if (MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton && ParentPanel && CategoryName.IsValid())
+	{
+		UE_LOG(LogTemp, Log, TEXT("SFXCategoryRowWidget::OnMouseButtonUp - Category: %s"), *CategoryName->ToString());
+		
+		// 호버 상태에서 릴리즈 -> 카테고리 선택
+		ParentPanel->OnCategorySelected(CategoryName);
+		
+		return FReply::Handled();
+	}
+
+	return STableRow<TSharedPtr<FName>>::OnMouseButtonUp(MyGeometry, MouseEvent);
 }
 

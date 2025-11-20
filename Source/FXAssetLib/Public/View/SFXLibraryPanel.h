@@ -12,6 +12,7 @@
 // Forward declarations
 class FFXLibraryState;
 class SFXLibraryPanelController;
+class SFXCategoryModalWidget;
 
 /**
  * FX Library Panel View
@@ -31,20 +32,22 @@ public:
 	void OnCategoryUnhovered();
 	void OnBrowseToAsset(TSharedPtr<FSoftObjectPath> AssetPath);
 	void OnRemoveAssetFromLibrary(TSharedPtr<FSoftObjectPath> AssetPath);
+	void OnCategorySelected(TSharedPtr<FName> Category);
+	void CloseCategoryModal();
 
 	// State 변경 시 UI 업데이트
 	void RefreshUI();
 
 private:
 	// UI 생성 콜백
-	TSharedRef<ITableRow> GenCatRow(TSharedPtr<FName> Item, const TSharedRef<STableViewBase>& Owner);
 	TSharedRef<ITableRow> GenAssetTile(TSharedPtr<FSoftObjectPath> Item, const TSharedRef<STableViewBase>& Owner);
 
 	// 썸네일 풀 가져오기
 	TSharedPtr<class FAssetThumbnailPool> GetThumbnailPool();
 
-	// 카테고리 선택 변경
-	void OnCatChanged(TSharedPtr<FName> NewSel, ESelectInfo::Type SelectInfo);
+	// 카테고리 버튼 이벤트 처리
+	FReply OnCategoryButtonMouseDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent);
+	FReply OnCategoryButtonMouseUp(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent);
 
 	// State 변경 델리게이트 바인딩
 	void BindStateDelegates();
@@ -55,14 +58,17 @@ private:
 	TSharedPtr<SFXLibraryPanelController> Controller;
 
 	// UI 위젯
-	TSharedPtr<SListView<TSharedPtr<FName>>> CategoryList;
 	TSharedPtr<STileView<TSharedPtr<FSoftObjectPath>>> AssetTileView;
+	TSharedPtr<class SBorder> CategoryButton;
+	TSharedPtr<SWidget> CategoryModalContent;
 
 	// 썸네일 풀
 	TSharedPtr<class FAssetThumbnailPool> ThumbnailPool;
 
 	// ListItemsSource용 포인터 (State 변경 시 업데이트)
-	TArray<TSharedPtr<FName>>* CategoryListSource = nullptr;
 	TArray<TSharedPtr<FSoftObjectPath>>* AssetTileListSource = nullptr;
+
+	// 모달 관련
+	bool bIsModalOpen = false;
 };
 
