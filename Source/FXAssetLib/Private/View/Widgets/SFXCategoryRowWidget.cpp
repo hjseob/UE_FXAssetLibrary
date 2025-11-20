@@ -6,6 +6,7 @@
 #include "Widgets/Layout/SBox.h"
 #include "Widgets/Text/STextBlock.h"
 #include "Widgets/Images/SImage.h"
+#include "Widgets/Input/SButton.h"
 #include "Styling/CoreStyle.h"
 
 void SFXCategoryRowWidget::Construct(const FArguments& InArgs, const TSharedRef<STableViewBase>& InOwnerTable)
@@ -26,45 +27,61 @@ void SFXCategoryRowWidget::Construct(const FArguments& InArgs, const TSharedRef<
 	FLinearColor ImageTint = bIsHovered ? FLinearColor::White : FLinearColor(0.5f, 0.5f, 0.5f, 1.0f);
 
 	SetContent(
-		SNew(SBorder)
-		.BorderImage(BackgroundBrush)
-		.BorderBackgroundColor(BorderColor)
-		.Padding(10)
+		SNew(SButton)
+		.ButtonStyle(FCoreStyle::Get(), "NoBorder")
+		.Cursor(EMouseCursor::Hand)
+		.OnClicked_Lambda([this]() -> FReply
+			{
+				if (ParentPanel && CategoryName.IsValid())
+				{
+					UE_LOG(LogTemp, Log, TEXT("SFXCategoryRowWidget::OnClicked - Category: %s"), *CategoryName->ToString());
+					// 클릭 시 카테고리 선택
+					ParentPanel->OnCategorySelected(CategoryName);
+					return FReply::Handled();
+				}
+				return FReply::Unhandled();
+			})
 		[
-			SNew(SBox)
-				.HeightOverride(120)
-				[
-					SNew(SOverlay)
+			SNew(SBorder)
+			.BorderImage(BackgroundBrush)
+			.BorderBackgroundColor(BorderColor)
+			.Padding(10)
+			[
+				SNew(SBox)
+					.HeightOverride(120)
+					[
+						SNew(SOverlay)
 
-						// 배경 이미지 (호버 시 채도 복원)
-						+ SOverlay::Slot()
-						[
-							SNew(SImage)
-								.Image(BackgroundBrush)
-								.ColorAndOpacity(ImageTint)
-						]
+							// 배경 이미지 (호버 시 채도 복원)
+							+ SOverlay::Slot()
+							[
+								SNew(SImage)
+									.Image(BackgroundBrush)
+									.ColorAndOpacity(ImageTint)
+							]
 
-						// 어두운 오버레이 (호버 시 투명도 감소)
-						+ SOverlay::Slot()
-						[
-							SNew(SImage)
-								.Image(new FSlateColorBrush(FLinearColor(0, 0, 0, bIsHovered ? 0.2f : 0.5f)))
-						]
+							// 어두운 오버레이 (호버 시 투명도 감소)
+							+ SOverlay::Slot()
+							[
+								SNew(SImage)
+									.Image(new FSlateColorBrush(FLinearColor(0, 0, 0, bIsHovered ? 0.2f : 0.5f)))
+							]
 
-						// 카테고리 이름
-						+ SOverlay::Slot()
-						.HAlign(HAlign_Center)
-						.VAlign(VAlign_Center)
-						[
-							SNew(STextBlock)
-								.Text(FText::FromName(CategoryName.IsValid() ? *CategoryName : NAME_None))
-								.Font(FCoreStyle::GetDefaultFontStyle("Bold", bIsHovered ? 20 : 18))
-								.ColorAndOpacity(FLinearColor::White)
-								.Justification(ETextJustify::Center)
-								.ShadowOffset(FVector2D(2, 2))
-								.ShadowColorAndOpacity(FLinearColor::Black)
-						]
-				]
+							// 카테고리 이름
+							+ SOverlay::Slot()
+							.HAlign(HAlign_Center)
+							.VAlign(VAlign_Center)
+							[
+								SNew(STextBlock)
+									.Text(FText::FromName(CategoryName.IsValid() ? *CategoryName : NAME_None))
+									.Font(FCoreStyle::GetDefaultFontStyle("Bold", bIsHovered ? 20 : 18))
+									.ColorAndOpacity(FLinearColor::White)
+									.Justification(ETextJustify::Center)
+									.ShadowOffset(FVector2D(2, 2))
+									.ShadowColorAndOpacity(FLinearColor::Black)
+							]
+					]
+			]
 		]
 	);
 }
@@ -87,20 +104,5 @@ void SFXCategoryRowWidget::OnMouseLeave(const FPointerEvent& MouseEvent)
 	{
 		ParentPanel->OnCategoryUnhovered();
 	}
-}
-
-FReply SFXCategoryRowWidget::OnMouseButtonUp(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
-{
-	if (MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton && ParentPanel && CategoryName.IsValid())
-	{
-		UE_LOG(LogTemp, Log, TEXT("SFXCategoryRowWidget::OnMouseButtonUp - Category: %s"), *CategoryName->ToString());
-		
-		// 호버 상태에서 릴리즈 -> 카테고리 선택
-		ParentPanel->OnCategorySelected(CategoryName);
-		
-		return FReply::Handled();
-	}
-
-	return STableRow<TSharedPtr<FName>>::OnMouseButtonUp(MyGeometry, MouseEvent);
 }
 

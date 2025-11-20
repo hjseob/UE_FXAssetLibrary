@@ -33,7 +33,7 @@ public:
 	void OnBrowseToAsset(TSharedPtr<FSoftObjectPath> AssetPath);
 	void OnRemoveAssetFromLibrary(TSharedPtr<FSoftObjectPath> AssetPath);
 	void OnCategorySelected(TSharedPtr<FName> Category);
-	void CloseCategoryModal();
+	void CloseCategorySubWidget();
 
 	// State 변경 시 UI 업데이트
 	void RefreshUI();
@@ -60,7 +60,7 @@ private:
 	// UI 위젯
 	TSharedPtr<STileView<TSharedPtr<FSoftObjectPath>>> AssetTileView;
 	TSharedPtr<class SBorder> CategoryButton;
-	TSharedPtr<SWidget> CategoryModalContent;
+	TSharedPtr<SFXCategoryModalWidget> CategorySubWidget;
 
 	// 썸네일 풀
 	TSharedPtr<class FAssetThumbnailPool> ThumbnailPool;
@@ -68,7 +68,7 @@ private:
 	// ListItemsSource용 포인터 (State 변경 시 업데이트)
 	TArray<TSharedPtr<FSoftObjectPath>>* AssetTileListSource = nullptr;
 
-	// 모달 관련
-	bool bIsModalOpen = false;
+	// 서브위젯 관련
+	bool bIsSubWidgetVisible = false;
 };
 

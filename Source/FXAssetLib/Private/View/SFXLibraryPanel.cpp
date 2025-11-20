@@ -233,7 +233,7 @@ void SFXLibraryPanel::Construct(const FArguments& InArgs)
 												.OnMouseButtonDown(this, &SFXLibraryPanel::OnCategoryButtonMouseDown)
 												.OnMouseButtonUp(this, &SFXLibraryPanel::OnCategoryButtonMouseUp)
 												.Cursor(EMouseCursor::Hand)
-												.ToolTipText(FText::FromString(TEXT("Click and hold to select category")))
+												.ToolTipText(FText::FromString(TEXT("Click to toggle category list")))
 												[
 													SNew(SHorizontalBox)
 
@@ -407,24 +407,35 @@ void SFXLibraryPanel::OnRemoveAssetFromLibrary(TSharedPtr<FSoftObjectPath> Asset
 
 FReply SFXLibraryPanel::OnCategoryButtonMouseDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
-	if (MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton && !bIsModalOpen && CategoryButton.IsValid())
+	if (MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton && CategoryButton.IsValid())
 	{
-		// 모달 위젯 생성
-		CategoryModalContent = SNew(SFXCategoryModalWidget)
+		if (bIsSubWidgetVisible)
+		{
+			// 팝업이 열려있으면 닫기
+			CloseCategorySubWidget();
+		}
+		else
+	{
+			// 팝업 위젯 생성 (TSharedRef로 직접 생성)
+			TSharedRef<SFXCategoryModalWidget> PopupWidget = SNew(SFXCategoryModalWidget)
 			.ParentPanel(this)
 			.State(State);
 
-		// 모달 표시 - 간단하고 안정적인 형태
-		FSlateApplication::Get().PushMenu(
-			CategoryButton.ToSharedRef(),
-			FWidgetPath(),
-			CategoryModalContent.ToSharedRef(),
-			MouseEvent.GetScreenSpacePosition(),
-			FPopupTransitionEffect(FPopupTransitionEffect::None)
-		);
+			// 참조 유지
+			CategorySubWidget = PopupWidget;
 
-		bIsModalOpen = true;
-		return FReply::Handled().CaptureMouse(CategoryButton.ToSharedRef());
+			// 독립 팝업으로 표시
+			FSlateApplication::Get().PushMenu(
+				CategoryButton.ToSharedRef(),
+				FWidgetPath(),
+				PopupWidget,
+				MouseEvent.GetScreenSpacePosition(),
+				FPopupTransitionEffect(FPopupTransitionEffect::None)
+			);
+
+			bIsSubWidgetVisible = true;
+		}
+		return FReply::Handled();
 	}
 
 	return FReply::Unhandled();
@@ -432,26 +443,17 @@ FReply SFXLibraryPanel::OnCategoryButtonMouseDown(const FGeometry& MyGeometry, c
 
 FReply SFXLibraryPanel::OnCategoryButtonMouseUp(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
-	if (MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton && bIsModalOpen)
-	{
-		// 모달이 열려있으면 닫기
-		// 카테고리 선택은 SFXCategoryRowWidget::OnMouseButtonUp에서 처리되며,
-		// 그곳에서 CloseCategoryModal()을 호출함
-		// 여기서는 버튼에서 직접 릴리즈된 경우를 처리
-		CloseCategoryModal();
-		return FReply::Handled().ReleaseMouseCapture();
-	}
-
+	// 서브위젯은 마우스 릴리즈로 닫지 않으므로 로직 제거
 	return FReply::Unhandled();
 }
 
-void SFXLibraryPanel::CloseCategoryModal()
+void SFXLibraryPanel::CloseCategorySubWidget()
 {
-	if (bIsModalOpen)
+	if (bIsSubWidgetVisible)
 	{
 		FSlateApplication::Get().DismissAllMenus();
-		bIsModalOpen = false;
-		CategoryModalContent.Reset();
+		bIsSubWidgetVisible = false;
+		CategorySubWidget.Reset();
 	}
 }
 
@@ -477,7 +479,7 @@ void SFXLibraryPanel::OnCategorySelected(TSharedPtr<FName> Category)
 		}
 	}
 
-	// 4. 모달 닫기
-	CloseCategoryModal();
+	// 4. 서브위젯 닫기
+	CloseCategorySubWidget();
 }
 
