@@ -24,7 +24,7 @@ public:
 	//FX Library 패널 탭을 생성합니다.
 	TSharedRef<class SDockTab> OnSpawnFXLibraryTab(const class FSpawnTabArgs& SpawnTabArgs);
 
-private:
+public:
 	/** FX Library 탭 이름 */
 	static const FName FXLibraryTabName;
 };

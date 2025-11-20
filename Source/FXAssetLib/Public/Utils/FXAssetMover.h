@@ -34,3 +34,4 @@ public:
 		const FString& BaseAssetName
 	);
 };
+

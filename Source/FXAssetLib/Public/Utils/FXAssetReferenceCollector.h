@@ -52,3 +52,4 @@ private:
 	 */
 	static FSoftObjectPath AssetIdentifierToSoftObjectPath(const FAssetIdentifier& AssetId);
 };
+

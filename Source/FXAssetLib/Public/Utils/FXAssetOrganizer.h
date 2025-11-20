@@ -33,3 +33,4 @@ private:
 	 */
 	static FString AssetTypeToFolderName(const FString& AssetType);
 };
+

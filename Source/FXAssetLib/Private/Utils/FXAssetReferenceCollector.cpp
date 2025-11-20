@@ -1,6 +1,6 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-#include "FXAssetReferenceCollector.h"
+#include "Utils/FXAssetReferenceCollector.h"
 #include "AssetRegistry/AssetRegistryModule.h"
 #include "AssetRegistry/IAssetRegistry.h"
 #include "Modules/ModuleManager.h"
@@ -143,3 +143,4 @@ FSoftObjectPath FFXAssetReferenceCollector::AssetIdentifierToSoftObjectPath(cons
 
 	return FSoftObjectPath(FullPath);
 }
+

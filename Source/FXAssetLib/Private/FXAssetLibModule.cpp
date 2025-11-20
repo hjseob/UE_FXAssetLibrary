@@ -4,6 +4,7 @@
 #include "FXAssetLibEditorModeCommands.h"
 
 #include "FXLibrarySettings.h"
+#include "Core/FXAssetLibConstants.h"
 #include "ToolMenus.h"
 #include "ContentBrowserMenuContexts.h"
 #include "ContentBrowserModule.h"
@@ -12,8 +13,8 @@
 
 
 // FX Library Panel
-#include "SFXLibraryPanel.h"
-#include "SFXAssetRegistPanel.h"
+#include "View/SFXLibraryPanel.h"
+#include "View/SFXAssetRegistPanel.h"
 
 // Tab Manager
 #include "Framework/Docking/TabManager.h"
@@ -26,7 +27,7 @@
 
 #define LOCTEXT_NAMESPACE "FXAssetLibModule"
 
-const FName FFXAssetLibModule::FXLibraryTabName = TEXT("FX Library");
+const FName FFXAssetLibModule::FXLibraryTabName = FFXAssetLibConstants::FXLibraryTabName;
 
 void FFXAssetLibModule::StartupModule()
 {
@@ -124,7 +125,7 @@ void FFXAssetLibModule::RegisterMenus()
             // FX Library 탭 열기
             FGlobalTabmanager::Get()->TryInvokeTab(FFXAssetLibModule::FXLibraryTabName);
         }))
-    );
+    ); 
 }
 
 TSharedRef<class SDockTab> FFXAssetLibModule::OnSpawnFXLibraryTab(const FSpawnTabArgs& SpawnTabArgs)

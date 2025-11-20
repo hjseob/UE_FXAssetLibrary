@@ -1,13 +1,13 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-#include "FXAssetMover.h"
+#include "Utils/FXAssetMover.h"
 #include "AssetToolsModule.h"
 #include "IAssetTools.h"
 #include "AssetRegistry/AssetRegistryModule.h"
 #include "Modules/ModuleManager.h"
 #include "Editor.h"
 #include "ObjectTools.h"
-#include "FXAssetOrganizer.h"
+#include "Utils/FXAssetOrganizer.h"
 
 FSoftObjectPath FXAssetMover::CopyAssetWithNewName(
 	const FSoftObjectPath& SourceAssetPath,
@@ -81,3 +81,4 @@ TArray<FSoftObjectPath> FXAssetMover::CopyAssets(
 
 	return CopiedAssets;
 }
+

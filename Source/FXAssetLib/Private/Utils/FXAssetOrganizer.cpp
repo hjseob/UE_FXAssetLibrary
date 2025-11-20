@@ -1,6 +1,6 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-#include "FXAssetOrganizer.h"
+#include "Utils/FXAssetOrganizer.h"
 #include "HAL/PlatformFilemanager.h"
 #include "Misc/Paths.h"
 #include "AssetRegistry/AssetRegistryModule.h"
@@ -113,3 +113,4 @@ FString FXAssetOrganizer::AssetTypeToFolderName(const FString& AssetType)
 	// 기본값: 에셋 타입 이름 그대로 사용
 	return AssetType;
 }
+

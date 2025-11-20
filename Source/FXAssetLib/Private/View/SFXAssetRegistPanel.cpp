@@ -1,21 +1,18 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-#include "SFXAssetRegistPanel.h"
+#include "View/SFXAssetRegistPanel.h"
 #include "SlateOptMacros.h"
 
-// Core includes first
-#include "CoreMinimal.h"
+// Controller & Model
+#include "Controller/SFXAssetRegistPanelController.h"
+#include "Model/FXLibraryModel.h"
 
+// Utils
+#include "Utils/FXAssetOrganizer.h"
+#include "Utils/FXAssetMover.h"
 
-// Modules (before Asset Registry to ensure proper namespace)
-#include "Modules/ModuleManager.h"
-#include "AssetRegistry/AssetData.h"
-
-
-// Asset Registry (after modules)
-#include "AssetRegistry/IAssetRegistry.h"
-#include "AssetRegistry/AssetRegistryModule.h"
-
+// Core
+#include "Core/FXAssetLibConstants.h"
 
 // Slate Widgets
 #include "Widgets/Layout/SBorder.h"
@@ -28,31 +25,39 @@
 #include "Styling/AppStyle.h"
 #include "Styling/CoreStyle.h"
 
-
-
-
-
-// Content Browser
-#include "ContentBrowserModule.h"
-
-// FX Library
-#include "FXLibrarySettings.h"
-#include "FXAssetOrganizer.h"
-#include "FXAssetMover.h"
-
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 void SFXAssetRegistPanel::Construct(const FArguments& InArgs)
 {
 	SelectedAssets = InArgs._SelectedAssets;
 	
+	//// Controller 및 Model 생성
+	//TSharedPtr<FFXLibraryModel> Model = MakeShared<FFXLibraryModel>();
+	//Controller = MakeShared<SFXAssetRegistPanelController>();
+	//Controller->Initialize(Model);
+
+	// State와 Model 생성
+	TSharedPtr<FFXLibraryState> State = MakeShared<FFXLibraryState>();
+	TSharedPtr<FFXLibraryModel> Model = MakeShared<FFXLibraryModel>();
+	Model->SetState(State);  // ⭐ State를 Model에 설정
+
+	// Controller 생성 및 초기화
+	Controller = MakeShared<SFXAssetRegistPanelController>();
+	Controller->Initialize(Model);
+
+	// 초기 데이터 로드
+	if (Model.IsValid())
+	{
+		Model->LoadFromSettings();
+	}
+
 	// 기본값 설정
-	RootPath = TEXT("/Game/FXLib/");
+	RootPath = FFXAssetLibConstants::DefaultRootPath;
 	
 	// 첫 번째 선택된 에셋의 이름을 기본값으로 사용
 	if (SelectedAssets.Num() > 0)
 	{
 		AssetName = SelectedAssets[0].AssetName.ToString();
-		CategoryName = TEXT("Default");
+		CategoryName = FFXAssetLibConstants::DefaultCategoryName;
 	}
 
 	// 카테고리 목록 로드
@@ -169,32 +174,6 @@ void SFXAssetRegistPanel::Construct(const FArguments& InArgs)
 				]
 			]
 
-			// Hashtags (주석 처리)
-			/*
-			+ SVerticalBox::Slot()
-			.AutoHeight()
-			.Padding(0, 0, 0, 20)
-			[
-				SNew(SVerticalBox)
-				+ SVerticalBox::Slot()
-				.AutoHeight()
-				.Padding(0, 0, 0, 5)
-				[
-					SNew(STextBlock)
-					.Text(FText::FromString(TEXT("Hashtags (comma separated)")))
-					.Font(FCoreStyle::GetDefaultFontStyle("Regular", 10))
-				]
-				+ SVerticalBox::Slot()
-				.AutoHeight()
-				[
-					SNew(SEditableTextBox)
-					.Text(FText::FromString(Hashtags))
-					.OnTextChanged(this, &SFXAssetRegistPanel::OnHashtagsChanged)
-					.HintText(FText::FromString(TEXT("fire, explosion, vfx")))
-				]
-			]
-			*/
-
 			// 버튼들
 			+ SVerticalBox::Slot()
 			.AutoHeight()
@@ -225,81 +204,12 @@ void SFXAssetRegistPanel::Construct(const FArguments& InArgs)
 
 FReply SFXAssetRegistPanel::OnRegisterClicked()
 {
-	// 유효성 검사
-	if (RootPath.IsEmpty() || AssetName.IsEmpty() || CategoryName.IsEmpty())
+	if (!Controller.IsValid())
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Please fill in all required fields"));
 		return FReply::Handled();
 	}
 
-	// Settings 가져오기
-	UFXLibrarySettings* Settings = GetMutableDefault<UFXLibrarySettings>();
-	if (!Settings)
-	{
-		UE_LOG(LogTemp, Error, TEXT("Failed to get FX Library Settings"));
-		return FReply::Handled();
-	}
-
-	// 카테고리 찾기 또는 생성
-	FFXCategoryData* Category = Settings->FindCategory(*CategoryName);
-	if (!Category)
-	{
-		Category = Settings->AddCategory(*CategoryName);
-		UE_LOG(LogTemp, Log, TEXT("Created new category: %s"), *CategoryName);
-	}
-
-	// 선택된 에셋들 중 나이아가라 시스템만 복사 및 등록
-	int32 AddedCount = 0;
-	for (const FAssetData& AssetData : SelectedAssets)
-	{
-		if (AssetData.AssetClassPath.GetAssetName() == "NiagaraSystem"
-			|| AssetData.AssetClassPath.ToString().Contains("NiagaraSystem"))
-		{
-			// 원본 에셋 경로
-			FSoftObjectPath SourceAssetPath = AssetData.ToSoftObjectPath();
-			
-			// 대상 폴더 경로 생성 (RootPath/Particles/CategoryName)
-			FString DestinationFolder = FXAssetOrganizer::GetFolderPathForAssetType(
-				RootPath, CategoryName, TEXT("NiagaraSystem"));
-			
-			// 폴더 생성
-			if (!FXAssetOrganizer::CreateFolderPath(DestinationFolder))
-			{
-				UE_LOG(LogTemp, Error, TEXT("Failed to create folder: %s"), *DestinationFolder);
-				continue;
-			}
-			
-			// 에셋 복사 (새 이름으로)
-			FSoftObjectPath CopiedAssetPath = FXAssetMover::CopyAssetWithNewName(
-				SourceAssetPath,
-				DestinationFolder,
-				AssetName
-			);
-			
-			if (CopiedAssetPath.IsValid())
-			{
-				// 복사된 에셋을 카테고리에 추가
-				if (!Category->Assets.Contains(CopiedAssetPath))
-				{
-					Category->Assets.Add(CopiedAssetPath);
-					AddedCount++;
-					UE_LOG(LogTemp, Log, TEXT("Copied and registered asset: %s -> %s"), 
-						*SourceAssetPath.ToString(), *CopiedAssetPath.ToString());
-				}
-			}
-			else
-			{
-				UE_LOG(LogTemp, Warning, TEXT("Failed to copy asset: %s"), *SourceAssetPath.ToString());
-			}
-		}
-	}
-
-	// 설정 저장
-	Settings->SaveConfig();
-	Settings->TryUpdateDefaultConfigFile();
-
-	UE_LOG(LogTemp, Log, TEXT("Registered %d assets to category: %s (Root: %s)"), 
-		AddedCount, *CategoryName, *RootPath);
+	FReply Result = Controller->OnRegisterClicked(RootPath, AssetName, CategoryName, SelectedAssets);
 
 	// 창 닫기
 	if (TSharedPtr<SWindow> ParentWindow = FSlateApplication::Get().FindWidgetWindow(AsShared()))
@@ -307,11 +217,16 @@ FReply SFXAssetRegistPanel::OnRegisterClicked()
 		ParentWindow->RequestDestroyWindow();
 	}
 
-	return FReply::Handled();
+	return Result;
 }
 
 FReply SFXAssetRegistPanel::OnCancelClicked()
 {
+	if (Controller.IsValid())
+	{
+		Controller->OnCancelClicked();
+	}
+
 	// 창 닫기
 	if (TSharedPtr<SWindow> ParentWindow = FSlateApplication::Get().FindWidgetWindow(AsShared()))
 	{
@@ -322,17 +237,36 @@ FReply SFXAssetRegistPanel::OnCancelClicked()
 
 void SFXAssetRegistPanel::OnRootPathChanged(const FText& NewText)
 {
-	RootPath = NewText.ToString();
+	if (Controller.IsValid())
+	{
+		Controller->OnRootPathChanged(NewText, RootPath);
+	}
+	else
+	{
+		RootPath = NewText.ToString();
+	}
 }
 
 void SFXAssetRegistPanel::OnAssetNameChanged(const FText& NewText)
 {
-	AssetName = NewText.ToString();
+	if (Controller.IsValid())
+	{
+		Controller->OnAssetNameChanged(NewText, AssetName);
+	}
+	else
+	{
+		AssetName = NewText.ToString();
+	}
 }
 
 void SFXAssetRegistPanel::OnCategorySelectionChanged(TSharedPtr<FString> NewSelection, ESelectInfo::Type SelectInfo)
 {
-	if (NewSelection.IsValid())
+	if (Controller.IsValid())
+	{
+		Controller->OnCategorySelectionChanged(NewSelection, CategoryName);
+		SelectedCategoryOption = NewSelection;
+	}
+	else if (NewSelection.IsValid())
 	{
 		CategoryName = *NewSelection;
 		SelectedCategoryOption = NewSelection;
@@ -342,7 +276,6 @@ void SFXAssetRegistPanel::OnCategorySelectionChanged(TSharedPtr<FString> NewSele
 FReply SFXAssetRegistPanel::OnAddCategoryClicked()
 {
 	// 간단한 입력 다이얼로그 생성
-	FText InputText;
 	FText Title = FText::FromString(TEXT("New Category"));
 	FText Message = FText::FromString(TEXT("Enter category name:"));
 	FString DefaultValue = TEXT("NewCategory");
@@ -351,7 +284,7 @@ FReply SFXAssetRegistPanel::OnAddCategoryClicked()
 	TSharedRef<SWindow> InputWindow = SNew(SWindow)
 		.Title(Title)
 		.SizingRule(ESizingRule::UserSized)
-		.ClientSize(FVector2D(400, 150))
+		.ClientSize(FFXAssetLibConstants::RegistrationWindowSize)
 		.SupportsMaximize(false)
 		.SupportsMinimize(false);
 
@@ -401,14 +334,13 @@ FReply SFXAssetRegistPanel::OnAddCategoryClicked()
 				.OnClicked_Lambda([this, InputWindow, InputTextBox]()
 				{
 					FString NewCategoryName = InputTextBox->GetText().ToString().TrimStartAndEnd();
-					if (!NewCategoryName.IsEmpty())
+					if (!NewCategoryName.IsEmpty() && Controller.IsValid())
 					{
-						UFXLibrarySettings* Settings = GetMutableDefault<UFXLibrarySettings>();
-						if (Settings)
+						// Controller를 통해 카테고리 추가
+						TSharedPtr<FFXLibraryModel> Model = Controller->GetModel();
+						if (Model.IsValid())
 						{
-							// 카테고리 추가
-							Settings->AddCategory(*NewCategoryName);
-							Settings->SaveConfig();
+							Model->AddCategory(*NewCategoryName);
 							
 							// 목록 새로고침
 							LoadCategoryOptions();
@@ -422,6 +354,7 @@ FReply SFXAssetRegistPanel::OnAddCategoryClicked()
 									{
 										CategoryComboBox->SetSelectedItem(Option);
 										CategoryName = NewCategoryName;
+										SelectedCategoryOption = Option;
 										break;
 									}
 								}
@@ -450,19 +383,14 @@ void SFXAssetRegistPanel::LoadCategoryOptions()
 {
 	CategoryOptions.Empty();
 	
-	UFXLibrarySettings* Settings = GetMutableDefault<UFXLibrarySettings>();
-	if (Settings)
+	if (Controller.IsValid())
 	{
-		for (const FFXCategoryData& Category : Settings->Categories)
-		{
-			CategoryOptions.Add(MakeShareable(new FString(Category.CategoryName.ToString())));
-		}
+		Controller->LoadCategoryOptions(CategoryOptions);
 	}
-	
-	// 기본값이 없으면 "Default" 추가
-	if (CategoryOptions.Num() == 0)
+	else
 	{
-		CategoryOptions.Add(MakeShareable(new FString(TEXT("Default"))));
+		// 기본값이 없으면 "Default" 추가
+		CategoryOptions.Add(MakeShareable(new FString(FFXAssetLibConstants::DefaultCategoryName)));
 	}
 	
 	// 현재 선택된 카테고리가 있으면 선택 유지
@@ -473,7 +401,10 @@ void SFXAssetRegistPanel::LoadCategoryOptions()
 		{
 			if (Option.IsValid() && *Option == SelectedName)
 			{
-				CategoryComboBox->SetSelectedItem(Option);
+				if (CategoryComboBox.IsValid())
+				{
+					CategoryComboBox->SetSelectedItem(Option);
+				}
 				return;
 			}
 		}
@@ -504,7 +435,15 @@ FText SFXAssetRegistPanel::GetCategoryComboBoxContent() const
 
 void SFXAssetRegistPanel::OnHashtagsChanged(const FText& NewText)
 {
-	Hashtags = NewText.ToString();
+	if (Controller.IsValid())
+	{
+		Controller->OnHashtagsChanged(NewText, Hashtags);
+	}
+	else
+	{
+		Hashtags = NewText.ToString();
+	}
 }
 
 END_SLATE_FUNCTION_BUILD_OPTIMIZATION
+

@@ -5,20 +5,18 @@
 #include "CoreMinimal.h"
 #include "Widgets/SCompoundWidget.h"
 
-
-// ⭐ Forward declarations (불필요한 include 방지)
+// Forward declarations
 struct FAssetData;
-//class SComboBox;
 class SEditableTextBox;
-
+//class SComboBox;
+class SFXAssetRegistPanelController;
 
 /**
- * FX Asset Registration Panel
- * 나이아가라 에셋 등록을 위한 독립 창
+ * FX Asset Registration Panel View
+ * 나이아가라 에셋 등록을 위한 독립 창 (UI 구성만 담당)
  */
 class FXASSETLIB_API SFXAssetRegistPanel : public SCompoundWidget
 {
-
 public:
 	SLATE_BEGIN_ARGS(SFXAssetRegistPanel) {}
 		SLATE_ARGUMENT(TArray<FAssetData>, SelectedAssets)
@@ -39,9 +37,15 @@ private:
 	// 카테고리 목록
 	TArray<TSharedPtr<FString>> CategoryOptions;
 	TSharedPtr<FString> SelectedCategoryOption;
-	TSharedPtr<class SComboBox<TSharedPtr<FString>>> CategoryComboBox;
+	TSharedPtr<SComboBox<TSharedPtr<FString>>> CategoryComboBox;
 
-	// 콜백 함수들
+	// Controller
+	TSharedPtr<SFXAssetRegistPanelController> Controller;
+
+	// State (필요시 사용)
+	//TSharedPtr<FFXLibraryState> State;
+
+	// 콜백 함수들 (Controller로 위임)
 	FReply OnRegisterClicked();
 	FReply OnCancelClicked();
 	FReply OnAddCategoryClicked();
@@ -54,4 +58,9 @@ private:
 	void LoadCategoryOptions();
 	TSharedRef<SWidget> MakeCategoryWidget(TSharedPtr<FString> InOption);
 	FText GetCategoryComboBoxContent() const;
+
+
+	
+
 };
+
