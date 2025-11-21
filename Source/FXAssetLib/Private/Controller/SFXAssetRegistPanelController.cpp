@@ -68,11 +68,12 @@ FReply SFXAssetRegistPanelController::OnRegisterClicked(
 				continue;
 			}
 			
-			// 에셋 복사 (새 이름으로)
-			FSoftObjectPath CopiedAssetPath = FXAssetMover::CopyAssetWithNewName(
+			// 에셋과 모든 참조를 복사 (재귀적으로 Material, Texture 등도 복사)
+			FSoftObjectPath CopiedAssetPath = FXAssetMover::CopyAssetWithReferences(
 				SourceAssetPath,
 				DestinationFolder,
-				AssetName
+				AssetName,
+				RootPath
 			);
 			
 			if (CopiedAssetPath.IsValid())
@@ -81,7 +82,7 @@ FReply SFXAssetRegistPanelController::OnRegisterClicked(
 				if (Model->AddAssetToCategory(*CategoryName, CopiedAssetPath))
 				{
 					AddedCount++;
-					UE_LOG(LogTemp, Log, TEXT("Copied and registered asset: %s -> %s"), 
+					UE_LOG(LogTemp, Log, TEXT("Copied and registered asset with references: %s -> %s"), 
 						*SourceAssetPath.ToString(), *CopiedAssetPath.ToString());
 				}
 			}

@@ -96,18 +96,36 @@ FString FXAssetOrganizer::GetFolderPathForAssetType(const FString& RootPath, con
 
 FString FXAssetOrganizer::AssetTypeToFolderName(const FString& AssetType)
 {
-	// 에셋 타입을 폴더 이름으로 매핑
+	// 에셋 타입을 폴더 이름으로 매핑 (파스칼 케이스)
+	// Material과 MaterialInstance는 Materials 폴더로
 	if (AssetType == "Material" || AssetType == "MaterialInstanceConstant")
 	{
 		return TEXT("Materials");
 	}
+	// Texture는 Textures 폴더로
 	else if (AssetType == "Texture2D" || AssetType == "Texture")
 	{
 		return TEXT("Textures");
 	}
-	else if (AssetType == "MaterialInstanceConstant")
+	// Mesh 타입은 Meshes 폴더로 (향후 확장용)
+	else if (AssetType == "StaticMesh" || AssetType == "SkeletalMesh")
 	{
-		return TEXT("MaterialInstances");
+		return TEXT("Meshes");
+	}
+	// NiagaraSystem은 Particles 폴더로 (기존 유지)
+	else if (AssetType == "NiagaraSystem")
+	{
+		return TEXT("Particles");
+	}
+	// VectorFields (향후 확장용)
+	else if (AssetType == "VectorField" || AssetType == "VectorFieldStatic")
+	{
+		return TEXT("VectorFields");
+	}
+	// NiagaraScripts (향후 확장용)
+	else if (AssetType == "NiagaraScript")
+	{
+		return TEXT("NiagaraScripts");
 	}
 	
 	// 기본값: 에셋 타입 이름 그대로 사용
